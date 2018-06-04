@@ -71,15 +71,23 @@ public:
 	inline Point3 Direction() const { return R.row(2); /* equivalent to R.t() * Vec(0,0,1) */ }
 	// returns the camera's view up direction
 	inline Point3 UpDirection() const { return -R.row(1); /* equivalent to R.t() * Vec(0,-1,0) */ }
-
+	// returns the focal length x
+	inline REAL GetFocalLengthFx() const { return K(0,1); }
+	// returns the focal length y
+	inline REAL GetFocalLengthFy() const { return K(1,1); }
+	// returns the principal Point X
+	inline REAL GetPrincipalPointX() const { return K(0,2); }
+	// returns the Principal Point Y
+	inline REAL GetPrincipalPointY() const { return K(1,2); }
 	// returns the focal length
 	inline REAL GetFocalLength() const { return K(0,0); }
+	
 	// returns the focal length aspect ratio
 	inline REAL GetFocalLengthRatio() const { return (K(1,1) / K(0,0)); }
 
 	// returns the principal-point
 	inline Point2 GetPrincipalPoint() const { return Point2(K(0,2), K(1,2)); }
-
+	
 	// update camera parameters given the delta
 	inline void UpdateTranslation(const Point3& delta) {
 		C += delta;

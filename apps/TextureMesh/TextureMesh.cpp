@@ -209,6 +209,64 @@ int main(int argc, LPCTSTR* argv)
 	// load and texture the mesh
 	if (!scene.Load(MAKE_PATH_SAFE(OPT::strInputFileName)))
 		return EXIT_FAILURE;
+	////TODO get what's "in"
+	//load mesh.
+	in>>OPT_App::strMeshFileName;
+	////TODO add implement LoadTextureImage
+	//load input texture images.
+	LoadTextureImage(in,cameras, names);
+	printf("Finish loading LoadTextureImage. ncameras: %d\n",cameras.size());
+
+
+	Scene scene(OPT_App::nMaxThreads);
+	// load and texture the mesh
+	scene.platforms.Reserve((uint32_t)cameras.size());
+	scene.images.Reserve((uint32_t)cameras.size());
+	scene.nCalibratedImages = 0;
+	for (size_t idx=0; idx<cameras.size(); ++idx) {
+		MVS::Image& image = scene.images.AddEmpty();
+		image.name = names[idx];
+		Util::ensureUnifySlash(image.name);
+		image.name = MAKE_PATH_FULL(WORKING_FOLDER_FULL, image.name);
+	    printf("opening image[%d]: %s.\n",idx,image.name.c_str());
+		if (!image.ReloadImage(0, false)) {
+			LOG("error: can not read image %s", image.name.c_str());
+			printf("error: can not read image %s", image.name.c_str());
+			return EXIT_FAILURE;
+		}
+		// set camera
+		image.platformID = scene.platforms.GetSize();
+		MVS::Platform& platform = scene.platforms.AddEmpty();
+		MVS::Platform::Camera& camera = platform.cameras.AddEmpty();
+		image.cameraID = 0;
+		const PBA::CameraT& cameraNVM = cameras[idx];
+		//camera.K = cameraNVM.GetFocalLength();
+	    //const float *K = (float *)cameraNVM.GetFocalLength();
+	    ////TODO impelement camera parameter passing
+	    camera.K(0, 0) = cameraNVM.GetFocalLengthFy();camera.K(0, 1) = 0.0;camera.K(0, 2) = cameraNVM.GetPrincipalPointX();
+	    camera.K(1, 0) = 0.0;camera.K(1, 1) = cameraNVM.GetFocalLengthFy();camera.K(1, 2) = cameraNVM.GetPrincipalPointY();
+	    camera.K(2, 0) = 0.0;camera.K(2, 1) = 0.0;camera.K(2, 2) = 1.0;
+
+		camera.R = RMatrix::IDENTITY;
+		camera.C = CMatrix::ZERO;
+		// normalize camera intrinsics
+		const REAL fScale(REAL(1)/MVS::Camera::GetNormalizationScale(image.width, image.height));
+		camera.K(0, 0) *= fScale;
+		camera.K(1, 1) *= fScale;
+		camera.K(0, 2) *= fScale;
+		camera.K(1, 2) *= fScale;
+		// set pose
+		image.poseID = platform.poses.GetSize();
+		MVS::Platform::Pose& pose = platform.poses.AddEmpty();
+		cameraNVM.GetMatrixRotation(pose.R.val);
+		cameraNVM.GetCameraCenter(pose.C.ptr());
+		image.UpdateCamera(scene.platforms);
+		++scene.nCalibratedImages;
+	}
+	printf("Finish convert mvs scene.\n");
+
+	printf("Beginning to load mesh:%s\n",OPT_App::strMeshFileName.c_str());
+
 	if (!OPT::strMeshFileName.IsEmpty()) {
 		// load given mesh
 		scene.mesh.Load(MAKE_PATH_SAFE(OPT::strMeshFileName));
