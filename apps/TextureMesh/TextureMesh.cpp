@@ -33,7 +33,7 @@
 #include "../../libs/MVS/Scene.h"
 #include <boost/program_options.hpp>
 #include "../../libs/interface.h"
-#include "json/json.h"
+#include <json/json.h>
 
 using namespace MVS;
 
