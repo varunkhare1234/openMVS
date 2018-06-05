@@ -81,7 +81,10 @@ public:
 	inline REAL GetPrincipalPointY() const { return K(1,2); }
 	// returns the focal length
 	inline REAL GetFocalLength() const { return K(0,0); }
-	
+	inline void SetPrincipalPoint(const REAL& x, const REAL& y){
+		K(0,2) = x;
+		K(1,2) = y;
+	}	
 	// returns the focal length aspect ratio
 	inline REAL GetFocalLengthRatio() const { return (K(1,1) / K(0,0)); }
 

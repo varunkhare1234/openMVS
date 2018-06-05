@@ -32,6 +32,8 @@
 #include "../../libs/MVS/Common.h"
 #include "../../libs/MVS/Scene.h"
 #include <boost/program_options.hpp>
+#include "../../libs/interface.h"
+#include "json/json.h"
 
 using namespace MVS;
 
@@ -195,6 +197,28 @@ void Finalize()
 	CLOSE_LOG();
 }
 
+bool LoadTextureImage(const char* filename, std::vector<PBA::Camera>& camera_data, std::vector<std::string>& imageNames)
+{
+	Json::Value root;
+	std::ifstream jsonFile(filename,std::ifstream::binary);
+	jsonFile >> root;
+	camera_data.resize(root.size());
+	imageNames.resize(root.size());
+	for(int i=0;i<root.size();i++){
+		imageNames[i] = root[i]["img"].asString();
+		double q[9],c[3];
+		camera_data[i].SetFocalLength(root[i]["focal_length"].asDouble())
+		for(int j=0;j<3;j++){
+			c[j] = root[i]["trans_mat"][j];
+			for(int k=0;k<3;k++)
+				q[j*3+k] = root[i]["rot_mat"][j][k];
+		}
+		camera_data[i].SetMatrixRotation(q);
+		camera_data[i].SetTranslation(c);
+		camera_data[i].SetPrincipalPoint(0.0,0.0);
+	}
+	return true;
+}
 int main(int argc, LPCTSTR* argv)
 {
 	#ifdef _DEBUGINFO
@@ -204,21 +228,18 @@ int main(int argc, LPCTSTR* argv)
 
 	if (!Initialize(argc, argv))
 		return EXIT_FAILURE;
+	std::vector<PBA::Camera> cameras;
+	std::vector<std::string> names;
 
 	Scene scene(OPT::nMaxThreads);
 	// load and texture the mesh
 	if (!scene.Load(MAKE_PATH_SAFE(OPT::strInputFileName)))
 		return EXIT_FAILURE;
-	////TODO get what's "in"
-	//load mesh.
-	in>>OPT_App::strMeshFileName;
-	////TODO add implement LoadTextureImage
 	//load input texture images.
-	LoadTextureImage(in,cameras, names);
+	if(!LoadTextureImage(OPT::strMeshFileName, cameras, names))
+		return EXIT_FAILURE;
 	printf("Finish loading LoadTextureImage. ncameras: %d\n",cameras.size());
 
-
-	Scene scene(OPT_App::nMaxThreads);
 	// load and texture the mesh
 	scene.platforms.Reserve((uint32_t)cameras.size());
 	scene.images.Reserve((uint32_t)cameras.size());
@@ -241,14 +262,19 @@ int main(int argc, LPCTSTR* argv)
 		image.cameraID = 0;
 		const PBA::CameraT& cameraNVM = cameras[idx];
 		//camera.K = cameraNVM.GetFocalLength();
-	    //const float *K = (float *)cameraNVM.GetFocalLength();
-	    ////TODO impelement camera parameter passing
-	    camera.K(0, 0) = cameraNVM.GetFocalLengthFy();camera.K(0, 1) = 0.0;camera.K(0, 2) = cameraNVM.GetPrincipalPointX();
-	    camera.K(1, 0) = 0.0;camera.K(1, 1) = cameraNVM.GetFocalLengthFy();camera.K(1, 2) = cameraNVM.GetPrincipalPointY();
-	    camera.K(2, 0) = 0.0;camera.K(2, 1) = 0.0;camera.K(2, 2) = 1.0;
-
-		camera.R = RMatrix::IDENTITY;
-		camera.C = CMatrix::ZERO;
+    	    //const float *K = (float *)cameraNVM.GetFocalLength();
+	    camera.K(0, 0) = cameraNVM.GetFocalLength();
+	    camera.K(0, 1) = 0.0;
+	    camera.K(0, 2) = cameraNVM.GetPrincipalPointX();
+	    camera.K(1, 0) = 0.0;
+	    camera.K(1, 1) = cameraNVM.GetFocalLength() * cameraNVM.getFocalLengthRatio();
+	    camera.K(1, 2) = cameraNVM.GetPrincipalPointY();
+	    camera.K(2, 0) = 0.0;
+	    camera.K(2, 1) = 0.0;
+	    camera.K(2, 2) = 1.0;
+		//TODO check for camera R and C vs poses
+		camera.R = cameraNVM.R;
+		camera.C = cameraNVM.C;
 		// normalize camera intrinsics
 		const REAL fScale(REAL(1)/MVS::Camera::GetNormalizationScale(image.width, image.height));
 		camera.K(0, 0) *= fScale;
@@ -265,7 +291,7 @@ int main(int argc, LPCTSTR* argv)
 	}
 	printf("Finish convert mvs scene.\n");
 
-	printf("Beginning to load mesh:%s\n",OPT_App::strMeshFileName.c_str());
+	printf("Beginning to load mesh:%s\n",OPT::strMeshFileName.c_str());
 
 	if (!OPT::strMeshFileName.IsEmpty()) {
 		// load given mesh
