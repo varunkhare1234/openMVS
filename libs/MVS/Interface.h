@@ -19,9 +19,9 @@
 
 // uncomment to enable custom OpenCV data types
 // (should be uncommented if OpenCV is not available)
-#if !defined(_USE_OPENCV) && !defined(_USE_CUSTOM_CV)
-#define _USE_CUSTOM_CV
-#endif
+//#if !defined(_USE_OPENCV) && !defined(_USE_CUSTOM_CV)
+//#define _USE_CUSTOM_CV
+//#endif
 
 #ifndef NO_ID
 #define NO_ID std::numeric_limits<uint32_t>::max()
@@ -218,7 +218,7 @@ bool Load<TYPE>(ArchiveLoad& a, TYPE& v) { \
 ARCHIVE_DEFINE_TYPE(uint32_t)
 ARCHIVE_DEFINE_TYPE(size_t)
 ARCHIVE_DEFINE_TYPE(float)
-ARCHIVE_DEFINE_TYPE(double)
+//ARCHIVE_DEFINE_TYPE(double)
 
 // Serialization support for cv::Matx
 template<typename _Tp, int m, int n>

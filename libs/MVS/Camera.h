@@ -71,6 +71,35 @@ public:
 	inline Point3 Direction() const { return R.row(2); /* equivalent to R.t() * Vec(0,0,1) */ }
 	// returns the camera's view up direction
 	inline Point3 UpDirection() const { return -R.row(1); /* equivalent to R.t() * Vec(0,-1,0) */ }
+	
+	inline bool SetMatrixRotation(double * r) {
+		for(int i=0;i<9;i++)
+			R(i/3,i%3) = r[i];
+		return true;
+	}
+
+	inline bool SetTranslation(double * c) {
+		for(int i=0;i<3;i++)
+			C[i] = c[i];
+		//C = ci;
+		return true;
+	}
+	inline bool GetMatrixRotation(RMatrix& r) {
+		r = R;
+		return true;
+	}
+
+	inline bool GetCameraCenter(CMatrix& p){
+		p = C;
+		return true;
+	}
+
+	inline bool SetFocalLength(double f){
+		K(0,0) = f;
+		K(1,1) = f;
+		return true;
+	}
+
 	// returns the focal length x
 	inline REAL GetFocalLengthFx() const { return K(0,1); }
 	// returns the focal length y

@@ -32,7 +32,6 @@
 #include "../../libs/MVS/Common.h"
 #include "../../libs/MVS/Scene.h"
 #include <boost/program_options.hpp>
-#include "../../libs/MVS/Interface.h"
 #include <json/json.h>
 
 using namespace MVS;
@@ -197,27 +196,28 @@ void Finalize()
 	CLOSE_LOG();
 }
 
-bool LoadTextureImage(const char* filename, std::vector<PBA::Camera>& camera_data, std::vector<std::string>& imageNames)
+bool LoadTextureImage(const char* filename, std::vector<MVS::Platform::Camera>& camera_data, std::vector<std::string>& imageNames)
 {
-	Json::Value root;
-	std::ifstream jsonFile(filename,std::ifstream::binary);
-	jsonFile >> root;
-	camera_data.resize(root.size());
-	imageNames.resize(root.size());
-	for(int i=0;i<root.size();i++){
-		imageNames[i] = root[i]["img"].asString();
-		double q[9],c[3];
-		camera_data[i].SetFocalLength(root[i]["focal_length"].asDouble())
-		for(int j=0;j<3;j++){
-			c[j] = root[i]["trans_mat"][j];
-			for(int k=0;k<3;k++)
-				q[j*3+k] = root[i]["rot_mat"][j][k];
-		}
-		camera_data[i].SetMatrixRotation(q);
-		camera_data[i].SetTranslation(c);
-		camera_data[i].SetPrincipalPoint(0.0,0.0);
-	}
-	return true;
+	//TODO link json or implement tokens
+//	Json::Value root;
+//	std::ifstream jsonFile(filename,std::ifstream::binary);
+//	jsonFile >> root;
+//	camera_data.resize(root.size());
+//	imageNames.resize(root.size());
+//	for(int i=0;i<root.size();i++){
+//		imageNames[i] = root[i]["img"].asString();
+//		double q[9],c[3];
+//		camera_data[i].SetFocalLength(root[i]["focal_length"].asDouble());
+//		for(int j=0;j<3;j++){
+//			c[j] = root[i]["trans_mat"][j].asDouble();
+//			for(int k=0;k<3;k++)
+//				q[j*3+k] = root[i]["rot_mat"][j][k].asDouble();
+//		}
+//		camera_data[i].SetMatrixRotation(q);
+//		camera_data[i].SetTranslation(c);
+//		camera_data[i].SetPrincipalPoint(0.0,0.0);
+//	}
+//	return true;
 }
 int main(int argc, LPCTSTR* argv)
 {
@@ -228,7 +228,7 @@ int main(int argc, LPCTSTR* argv)
 
 	if (!Initialize(argc, argv))
 		return EXIT_FAILURE;
-	std::vector<PBA::Camera> cameras;
+	std::vector<MVS::Platform::Camera> cameras;
 	std::vector<std::string> names;
 
 	Scene scene(OPT::nMaxThreads);
@@ -260,14 +260,14 @@ int main(int argc, LPCTSTR* argv)
 		MVS::Platform& platform = scene.platforms.AddEmpty();
 		MVS::Platform::Camera& camera = platform.cameras.AddEmpty();
 		image.cameraID = 0;
-		const PBA::CameraT& cameraNVM = cameras[idx];
+		MVS::Platform::Camera& cameraNVM = cameras[idx];
 		//camera.K = cameraNVM.GetFocalLength();
     	    //const float *K = (float *)cameraNVM.GetFocalLength();
 	    camera.K(0, 0) = cameraNVM.GetFocalLength();
 	    camera.K(0, 1) = 0.0;
 	    camera.K(0, 2) = cameraNVM.GetPrincipalPointX();
 	    camera.K(1, 0) = 0.0;
-	    camera.K(1, 1) = cameraNVM.GetFocalLength() * cameraNVM.getFocalLengthRatio();
+	    camera.K(1, 1) = cameraNVM.GetFocalLength() * cameraNVM.GetFocalLengthRatio();
 	    camera.K(1, 2) = cameraNVM.GetPrincipalPointY();
 	    camera.K(2, 0) = 0.0;
 	    camera.K(2, 1) = 0.0;
@@ -284,8 +284,8 @@ int main(int argc, LPCTSTR* argv)
 		// set pose
 		image.poseID = platform.poses.GetSize();
 		MVS::Platform::Pose& pose = platform.poses.AddEmpty();
-		cameraNVM.GetMatrixRotation(pose.R.val);
-		cameraNVM.GetCameraCenter(pose.C.ptr());
+		cameraNVM.GetMatrixRotation(pose.R);
+		cameraNVM.GetCameraCenter(pose.C);
 		image.UpdateCamera(scene.platforms);
 		++scene.nCalibratedImages;
 	}
