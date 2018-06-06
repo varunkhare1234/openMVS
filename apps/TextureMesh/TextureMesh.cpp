@@ -32,7 +32,7 @@
 #include "../../libs/MVS/Common.h"
 #include "../../libs/MVS/Scene.h"
 #include <boost/program_options.hpp>
-#include "../../libs/interface.h"
+#include "../../libs/MVS/Interface.h"
 #include <json/json.h>
 
 using namespace MVS;
